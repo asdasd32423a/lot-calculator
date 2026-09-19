@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAUUSD Lot Size Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #F3F0E8;
+    --surface: #FFFFFF;
+    --surface-2: #EAE5D8;
+    --border: #D8D2C2;
+    --text: #201D17;
+    --text-dim: #6B6558;
+    --accent: #9C7A1E;
+    --accent-strong: #7A5F16;
+    --loss: #A6402E;
+    --focus: #7A5F16;
+    --shadow: 0 1px 2px rgba(32,29,23,0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E0D0B;
+      --surface: #17150F;
+      --surface-2: #1E1B14;
+      --border: #33301F;
+      --text: #EDE9DD;
+      --text-dim: #9A9382;
+      --accent: #C9A227;
+      --accent-strong: #E4BC3E;
+      --loss: #D97A63;
+      --focus: #C9A227;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0E0D0B;
+    --surface: #17150F;
+    --surface-2: #1E1B14;
+    --border: #33301F;
+    --text: #EDE9DD;
+    --text-dim: #9A9382;
+    --accent: #C9A227;
+    --accent-strong: #E4BC3E;
+    --loss: #D97A63;
+    --focus: #C9A227;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px 64px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .num { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  .wrap { width: 100%; max-width: 460px; }
+
+  .ticket {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .ticket-head { padding: 22px 24px 18px; border-bottom: 1px solid var(--border); }
+
+  .symbol {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--accent-strong);
+    margin: 0 0 8px;
+  }
+
+  h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+
+  .sub { margin: 0; font-size: 13.5px; color: var(--text-dim); line-height: 1.5; max-width: 36ch; }
+
+  .fields { padding: 20px 24px 8px; display: flex; flex-direction: column; gap: 16px; }
+
+  .field label { display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom: 6px; }
+
+  .field-row { display: flex; gap: 12px; }
+  .field-row .field { flex: 1; }
+
+  .input-shell {
+    display: flex; align-items: center; border: 1px solid var(--border);
+    border-radius: 3px; background: var(--surface-2); padding: 0 12px;
+  }
+  .input-shell:focus-within { border-color: var(--focus); }
+  .input-shell .prefix, .input-shell .suffix {
+    font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--text-dim); white-space: nowrap;
+  }
+  .input-shell input {
+    flex: 1; min-width: 0; border: none; background: transparent; color: var(--text);
+    font-family: "IBM Plex Mono", monospace; font-size: 15px; padding: 11px 8px; outline: none;
+  }
+  .input-shell input::-webkit-outer-spin-button, .input-shell input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .input-shell input[type=number] { -moz-appearance: textfield; }
+
+  .divider { margin: 4px 24px 0; border-top: 1px dashed var(--border); }
+
+  .stats-pair { display: flex; gap: 12px; padding: 20px 24px 0; }
+  .stat {
+    flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 3px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .stat .k { font-size: 11.5px; color: var(--text-dim); }
+  .stat .v { font-size: 24px; font-weight: 600; color: var(--accent-strong); line-height: 1.1; }
+  .stat .v .unit { font-size: 13px; font-weight: 500; color: var(--text-dim); margin-left: 3px; }
+
+  .results { padding: 16px 24px 8px; display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .row .k { font-size: 13px; color: var(--text-dim); }
+  .row .v { font-size: 14px; }
+  .row .v.loss { color: var(--loss); }
+
+  .ladder-toggle {
+    margin: 4px 24px 0; padding: 10px 12px; background: none; border: 1px solid var(--border);
+    border-radius: 3px; color: var(--text-dim); font-family: "IBM Plex Mono", monospace; font-size: 12px;
+    cursor: pointer; display: flex; justify-content: space-between; align-items: center; width: calc(100% - 48px);
+  }
+  .ladder-toggle .chev { transition: transform 0.15s ease; }
+  .ladder-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
+
+  .ladder-wrap { margin: 0 24px; max-height: 0; overflow: hidden; transition: max-height 0.2s ease; }
+  .ladder-wrap.open { max-height: 260px; }
+
+  .ladder {
+    max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-top: none;
+    border-radius: 0 0 3px 3px; font-family: "IBM Plex Mono", monospace; font-size: 12px;
+  }
+  .ladder-head, .ladder-row { display: grid; grid-template-columns: 1fr 1.3fr 1fr 1fr; gap: 8px; padding: 7px 12px; }
+  .ladder-head { color: var(--text-dim); background: var(--surface-2); position: sticky; top: 0; font-size: 11px; }
+  .ladder-row { border-top: 1px solid var(--border); }
+  .ladder-row .cum { color: var(--accent-strong); }
+
+  .note { font-size: 12px; color: var(--text-dim); line-height: 1.6; padding: 18px 24px 22px; }
+  .note strong { color: var(--text); font-weight: 600; }
+
+  .warn {
+    display: none; margin: 16px 24px 0; padding: 10px 12px; border: 1px solid var(--loss);
+    border-radius: 3px; font-size: 12.5px; color: var(--loss); line-height: 1.5;
+  }
+  .warn.show { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ladder-toggle .chev, .ladder-wrap { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ticket">
+    <div class="ticket-head">
+      <p class="symbol">XAUUSD &middot; GOLD</p>
+      <h1>Lot size calculator</h1>
+      <p class="sub">Give it your risk and zone. It works out how many layers to scale in with, how far apart, and the lot size for each.</p>
+    </div>
+
+    <div class="fields">
+      <div class="field">
+        <label for="capital">Account capital</label>
+        <div class="input-shell">
+          <span class="prefix">$</span>
+          <input type="number" id="capital" inputmode="decimal" placeholder="1000" min="0" step="any">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="loss">Desired total loss if SL is hit</label>
+        <div class="input-shell">
+          <span class="prefix">$</span>
+          <input type="number" id="loss" inputmode="decimal" placeholder="50" min="0" step="any">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="zone">Zone size</label>
+          <div class="input-shell">
+            <input type="number" id="zone" inputmode="decimal" placeholder="50" min="0" step="any">
+            <span class="suffix">pips</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="sl">SL from zone</label>
+          <div class="input-shell">
+            <input type="number" id="sl" inputmode="decimal" placeholder="50" min="0" step="any">
+            <span class="suffix">pips</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="warn" id="warn"></div>
+
+    <div class="stats-pair">
+      <div class="stat">
+        <span class="k">Layer every</span>
+        <span class="v num" id="out-spacing">&mdash;</span>
+      </div>
+      <div class="stat">
+        <span class="k">Lot per layer</span>
+        <span class="v num" id="out-lot">0.01</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="results">
+      <div class="row">
+        <span class="k">Number of layers</span>
+        <span class="v num" id="out-layers">0</span>
+      </div>
+      <div class="row">
+        <span class="k">Total position size (all layers filled)</span>
+        <span class="v num" id="out-total-lot">0.00</span>
+      </div>
+      <div class="row">
+        <span class="k">Total pips from first layer</span>
+        <span class="v num" id="out-pips">0 pips</span>
+      </div>
+      <div class="row">
+        <span class="k">Actual total loss at SL</span>
+        <span class="v num loss" id="out-loss">$0.00</span>
+      </div>
+      <div class="row">
+        <span class="k">Risk as % of capital</span>
+        <span class="v num" id="out-risk-pct">0.00%</span>
+      </div>
+    </div>
+
+    <button type="button" class="ladder-toggle" id="ladder-toggle" aria-expanded="false">
+      <span>View layer-by-layer breakdown</span>
+      <span class="chev">&#9662;</span>
+    </button>
+    <div class="ladder-wrap" id="ladder-wrap">
+      <div class="ladder">
+        <div class="ladder-head">
+          <span>Layer</span>
+          <span>Distance to SL</span>
+          <span>Lot</span>
+          <span>Loss at SL</span>
+        </div>
+        <div id="ladder-body"></div>
+      </div>
+    </div>
+
+    <p class="note">
+      <strong>Pip basis:</strong> 4000.0 &rarr; 4010.0 = 100 pips, so 1 pip = $0.10 and $10 per pip per 1.00 standard lot. Layers are spread evenly from the top of the zone (which travels the full zone + SL if stopped out) down to the SL edge (which only travels SL). The calculator caps itself at 8 layers so it stays practical to place by hand, then works out the widest spacing and the lot size &mdash; used on every layer &mdash; that lands the combined loss at your desired amount without going over.
+    </p>
+  </div>
+</div>
+
+<script>
+(function() {
+  var PIP_VALUE_PER_STANDARD_LOT_USD = 10; // XAUUSD, pip = 0.1 price move, 100oz contract
+  var MIN_LOT = 0.01;    // smallest tradable lot
+  var LOT_ROUND = 0.01;  // lot sizes are rounded down to this increment
+  var MAX_LAYERS = 8;    // cap so the layer set stays practical to place by hand
+
+  var state = { ladderOpen: false };
+
+  var els = {
+    capital: document.getElementById('capital'),
+    loss: document.getElementById('loss'),
+    zone: document.getElementById('zone'),
+    sl: document.getElementById('sl'),
+    outSpacing: document.getElementById('out-spacing'),
+    outLot: document.getElementById('out-lot'),
+    outLayers: document.getElementById('out-layers'),
+    outTotalLot: document.getElementById('out-total-lot'),
+    outPips: document.getElementById('out-pips'),
+    outLoss: document.getElementById('out-loss'),
+    outRiskPct: document.getElementById('out-risk-pct'),
+    warn: document.getElementById('warn'),
+    ladderToggle: document.getElementById('ladder-toggle'),
+    ladderWrap: document.getElementById('ladder-wrap'),
+    ladderBody: document.getElementById('ladder-body')
+  };
+
+  function num(el) {
+    var v = parseFloat(el.value);
+    return isFinite(v) && v >= 0 ? v : 0;
+  }
+  function fmt(n, decimals) {
+    return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+
+  function resetOutputs(totalDistance) {
+    els.outSpacing.innerHTML = '&mdash;';
+    els.outLot.textContent = '0.00';
+    els.outLayers.textContent = '0';
+    els.outTotalLot.textContent = '0.00';
+    els.outPips.textContent = (totalDistance > 0 ? fmt(totalDistance, 0) : '0') + ' pips';
+    els.outLoss.textContent = '$0.00';
+    els.outRiskPct.textContent = '0.00%';
+  }
+
+  function distancesFor(N, zone, sl, totalDistance) {
+    var spacing = N > 1 ? zone / (N - 1) : 0;
+    var distances = [];
+    for (var i = 0; i < N; i++) {
+      distances.push(N > 1 ? (zone - i * spacing) + sl : totalDistance);
+    }
+    return { spacing: spacing, distances: distances };
+  }
+
+  function calculate() {
+    var capitalUsd = num(els.capital);
+    var lossUsd = num(els.loss);
+    var zone = num(els.zone);
+    var sl = num(els.sl);
+
+    els.warn.classList.remove('show');
+    els.warn.textContent = '';
+    els.ladderBody.innerHTML = '';
+
+    var totalDistance = zone + sl;
+
+    if (totalDistance <= 0 || lossUsd <= 0) {
+      resetOutputs(totalDistance);
+      return;
+    }
+
+    var preferredN = zone > 0 ? MAX_LAYERS : 1; // no width to spread across
+
+    // Try the requested layer count first; if the lot size that would need
+    // falls under the smallest tradable lot, use fewer layers instead.
+    var N = 0, lot = 0, sumDistances = 0, spacing = 0, distances = [];
+    for (var tryN = preferredN; tryN >= 1; tryN--) {
+      var d = distancesFor(tryN, zone, sl, totalDistance);
+      var sd = d.distances.reduce(function(a, b) { return a + b; }, 0);
+      var rawLot = lossUsd / (PIP_VALUE_PER_STANDARD_LOT_USD * sd);
+      var roundedLot = Math.floor(rawLot / LOT_ROUND) * LOT_ROUND;
+      roundedLot = Math.round(roundedLot * 100) / 100;
+      if (roundedLot >= MIN_LOT) {
+        N = tryN; lot = roundedLot; sumDistances = sd; spacing = d.spacing; distances = d.distances;
+        break;
+      }
+    }
+
+    if (N < 1) {
+      resetOutputs(totalDistance);
+      els.warn.textContent = 'Even a single ' + fmt(MIN_LOT, 2) + ' lot risks more than your desired loss over this zone + SL distance. Increase your desired loss, or tighten the zone/SL.';
+      els.warn.classList.add('show');
+      return;
+    }
+
+    if (N < preferredN) {
+      els.warn.textContent = 'Using ' + N + ' layer' + (N > 1 ? 's' : '') + ' instead of ' + preferredN + ' \u2014 more layers would need less than the smallest tradable lot (' + fmt(MIN_LOT, 2) + ').';
+      els.warn.classList.add('show');
+    }
+
+    var actualLossUsd = lot * PIP_VALUE_PER_STANDARD_LOT_USD * sumDistances;
+    var riskPct = capitalUsd > 0 ? (actualLossUsd / capitalUsd) * 100 : 0;
+    var totalLot = lot * N;
+
+    els.outSpacing.innerHTML = (N > 1 ? fmt(spacing, spacing < 10 ? 2 : 1) : 'single entry') + (N > 1 ? '<span class="unit">pips</span>' : '');
+    els.outLot.textContent = fmt(lot, 2);
+    els.outLayers.textContent = String(N);
+    els.outTotalLot.textContent = fmt(totalLot, 2);
+    els.outPips.textContent = fmt(distances[0], 0) + ' pips';
+    els.outLoss.textContent = '$' + fmt(actualLossUsd, 2);
+    els.outRiskPct.textContent = fmt(riskPct, 2) + '%';
+
+    var rows = '';
+    for (var j = 0; j < N; j++) {
+      var layerLossUsd = lot * PIP_VALUE_PER_STANDARD_LOT_USD * distances[j];
+      rows += '<div class="ladder-row">' +
+        '<span>Layer ' + (j + 1) + '</span>' +
+        '<span>' + fmt(distances[j], 1) + ' pips</span>' +
+        '<span>' + fmt(lot, 2) + '</span>' +
+        '<span class="cum">$' + fmt(layerLossUsd, 2) + '</span>' +
+        '</div>';
+    }
+    els.ladderBody.innerHTML = rows;
+  }
+
+  function setLadder(open) {
+    state.ladderOpen = open;
+    els.ladderToggle.setAttribute('aria-expanded', String(open));
+    if (open) { els.ladderWrap.classList.add('open'); } else { els.ladderWrap.classList.remove('open'); }
+  }
+
+  els.ladderToggle.addEventListener('click', function() { setLadder(!state.ladderOpen); });
+
+  [els.capital, els.loss, els.zone, els.sl].forEach(function(el) {
+    el.addEventListener('input', calculate);
+  });
+
+  calculate();
+})();
+</script>
+</body>
+</html>
